@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      const message = error.response?.data?.error || 'Login failed';
+      const message = error.response?.data?.message || error.response?.data?.error || 'Login failed';
       toast.error(message);
       return { success: false, error: message };
     }
@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
-      const message = error.response?.data?.error || 'Registration failed';
+      const message = error.response?.data?.message || error.response?.data?.error || 'Registration failed';
       toast.error(message);
       return { success: false, error: message };
     }

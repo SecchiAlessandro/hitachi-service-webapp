@@ -69,6 +69,20 @@ app.post('/api/test-weekly-reminders', async (req, res) => {
     }
 });
 
+// Force send reminder for specific user
+app.post('/api/force-reminder/:userId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const result = await emailService.forceUserReminder(userId);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
 // Debug endpoint to check email configuration
 app.get('/api/debug-email', (req, res) => {
     res.json({

@@ -217,19 +217,20 @@ class EmailService {
 
         console.log('Checking for tasks due soon...');
         
-        // Find tasks due in 7 days that haven't been sent reminders
+        // Find tasks due within 7 days that haven't been sent reminders
         const query = `
             SELECT t.*, u.email, u.name 
             FROM tasks t
             JOIN users u ON t.assigned_to = u.id
             WHERE t.status = 'pending' 
-            AND date(t.due_date) = date('now', '+7 days')
+            AND date(t.due_date) >= date('now')
+            AND date(t.due_date) <= date('now', '+7 days')
             AND NOT EXISTS (
                 SELECT 1 FROM email_notifications en 
                 WHERE en.task_id = t.id 
                 AND en.status = 'sent' 
                 AND en.notification_type = 'due_reminder'
-                AND date(en.created_at) = date('now')
+                AND date(en.created_at) >= date('now', '-1 days')
             )
         `;
 
@@ -290,6 +291,36 @@ class EmailService {
             return result;
         } catch (error) {
             throw error;
+        }
+    }
+
+    // Force send reminder for specific user
+    async forceUserReminder(userId) {
+        try {
+            const query = `
+                SELECT t.*, u.email, u.name 
+                FROM tasks t
+                JOIN users u ON t.assigned_to = u.id
+                WHERE t.status = 'pending' 
+                AND t.assigned_to = ?
+                AND date(t.due_date) >= date('now')
+                ORDER BY t.due_date ASC
+                LIMIT 1
+            `;
+
+            const stmt = db.prepare(query);
+            const task = stmt.get(userId);
+
+            if (!task) {
+                return { success: false, message: 'No pending tasks found for this user' };
+            }
+
+            console.log(`Forcing reminder for task: ${task.title} to ${task.email}`);
+            const result = await this.sendTaskReminder(task, task.email, task.name);
+            return { success: result.success, task: task.title, email: task.email, ...result };
+        } catch (error) {
+            console.error('Error in forceUserReminder:', error);
+            return { success: false, error: error.message };
         }
     }
 }
